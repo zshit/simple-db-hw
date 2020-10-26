@@ -2,6 +2,9 @@ package simpledb;
 
 import java.util.*;
 import java.io.*;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Each instance of HeapPage stores data for one page of HeapFiles and implements the Page interface
@@ -324,7 +327,7 @@ public class HeapPage implements Page {
   public Iterator<Tuple> iterator() {
     // some code goes here
 
-    /*class  HeapPageIterator<T> implements Iterator<simpledb.Tuple> {
+    class HeapPageIterator<T> implements Iterator<simpledb.Tuple> {
 
       private Iterator<Tuple> iterator;
 
@@ -339,8 +342,7 @@ public class HeapPage implements Page {
 
       @Override
       public Tuple next() {
-         Tuple tuple = iterator.next();
-        System.out.println("next" + tuple);
+        Tuple tuple = iterator.next();
         return tuple;
       }
 
@@ -354,18 +356,12 @@ public class HeapPage implements Page {
         iterator.forEachRemaining(action);
       }
     }
-    return new HeapPageIterator<Tuple>(IntStream.range(0,tuples.length).filter(this::isSlotUsed).mapToObj(index -> tuples[index]).collect(
-        Collectors.toList()).iterator());
-*/
-    Vector<Tuple> v = new Vector<Tuple>();
-    for (int i = 0; i < this.numSlots; i++) {
-      if (this.isSlotUsed(i)) {
-        v.add(this.tuples[i]);
-      }
-    }
-    return v.iterator();
+    return new HeapPageIterator<Tuple>(
+        IntStream.range(0, tuples.length).filter(this::isSlotUsed).mapToObj(index -> tuples[index])
+            .collect(
+                Collectors.toList()).iterator());
+
+
   }
-
-
 }
 

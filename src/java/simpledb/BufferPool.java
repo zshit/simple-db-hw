@@ -3,6 +3,7 @@ package simpledb;
 import java.io.*;
 
 import java.util.LinkedHashMap;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -38,7 +39,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         this.numPages = numPages;
-        linkedHashMap = new LinkedHashMap<>();
+        linkedHashMap = new LinkedHashMap<PageId,Page>();
     }
     
     public static int getPageSize() {
@@ -74,6 +75,19 @@ public class BufferPool {
         throws TransactionAbortedException, DbException {
         // some code goes here
         Page page = linkedHashMap.get(pid);
+        if(page ==null){
+            DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+            if(dbFile ==null){
+                return null;
+            }
+            page = dbFile.readPage(pid);
+            if(page !=null){
+                if(linkedHashMap.size() >= numPages){
+                    evictPage();
+                }
+                linkedHashMap.put(pid,page);
+            }
+        }
         return page;
     }
 
@@ -208,6 +222,7 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
+
     }
 
 }
