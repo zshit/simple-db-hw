@@ -7,68 +7,83 @@ import java.util.*;
  */
 public class Filter extends Operator {
 
-    private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 1L;
 
-    /**
-     * Constructor accepts a predicate to apply and a child operator to read
-     * tuples to filter from.
-     * 
-     * @param p
-     *            The predicate to filter tuples with
-     * @param child
-     *            The child operator
-     */
-    public Filter(Predicate p, OpIterator child) {
-        // some code goes here
-    }
+  private Predicate predicate;
+  private OpIterator opIterator;
 
-    public Predicate getPredicate() {
-        // some code goes here
-        return null;
-    }
+  /**
+   * Constructor accepts a predicate to apply and a child operator to read tuples to filter from.
+   *
+   * @param p     The predicate to filter tuples with
+   * @param child The child operator
+   */
+  public Filter(Predicate p, OpIterator child) {
+    // some code goes here
+    this.predicate = p;
+    this.opIterator = child;
+  }
 
-    public TupleDesc getTupleDesc() {
-        // some code goes here
-        return null;
-    }
+  public Predicate getPredicate() {
+    // some code goes here
+    return predicate;
+  }
 
-    public void open() throws DbException, NoSuchElementException,
-            TransactionAbortedException {
-        // some code goes here
-    }
+  public TupleDesc getTupleDesc() {
+    // some code goes here
+    return opIterator.getTupleDesc();
+  }
 
-    public void close() {
-        // some code goes here
-    }
+  public void open() throws DbException, NoSuchElementException,
+      TransactionAbortedException {
+    // some code goes here
+    opIterator.open();
+    super.open();
+  }
 
-    public void rewind() throws DbException, TransactionAbortedException {
-        // some code goes here
-    }
+  public void close() {
+    // some code goes here
+    opIterator.close();
+  }
 
-    /**
-     * AbstractDbIterator.readNext implementation. Iterates over tuples from the
-     * child operator, applying the predicate to them and returning those that
-     * pass the predicate (i.e. for which the Predicate.filter() returns true.)
-     * 
-     * @return The next tuple that passes the filter, or null if there are no
-     *         more tuples
-     * @see Predicate#filter
-     */
-    protected Tuple fetchNext() throws NoSuchElementException,
-            TransactionAbortedException, DbException {
-        // some code goes here
-        return null;
-    }
+  public void rewind() throws DbException, TransactionAbortedException {
+    // some code goes here
+    opIterator.rewind();
+  }
 
-    @Override
-    public OpIterator[] getChildren() {
-        // some code goes here
-        return null;
+  /**
+   * AbstractDbIterator.readNext implementation. Iterates over tuples from the child operator,
+   * applying the predicate to them and returning those that pass the predicate (i.e. for which the
+   * Predicate.filter() returns true.)
+   *
+   * @return The next tuple that passes the filter, or null if there are no more tuples
+   * @see Predicate#filter
+   */
+  protected Tuple fetchNext() throws NoSuchElementException,
+      TransactionAbortedException, DbException {
+    // some code goes here
+    Tuple tuple = null;
+    while (opIterator.hasNext()) {
+      tuple = opIterator.next();
+      if (predicate.filter(tuple)) {
+        return tuple;
+      }
     }
+    return null;
+  }
 
-    @Override
-    public void setChildren(OpIterator[] children) {
-        // some code goes here
+  @Override
+  public OpIterator[] getChildren() {
+    // some code goes here
+    return new OpIterator[]{opIterator};
+  }
+
+  @Override
+  public void setChildren(OpIterator[] children) {
+    // some code goes here
+    if (children != null && children.length > 0) {
+      opIterator = children[0];
     }
+  }
 
 }
