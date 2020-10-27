@@ -1,0 +1,6 @@
+
+Tuple : 行记录
+TupleDesc : 元数据
+HeapFile : 数据文件
+HeapPage :  从数据文件中读出的单个Page
+BufferPool : 获取 HeapPage, 如果不存在则从HeapFile加载到内存中
