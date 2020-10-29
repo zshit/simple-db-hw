@@ -3,6 +3,7 @@ package simpledb;
 import java.io.*;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -74,6 +75,9 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
+        if (pid ==null){
+            return null;
+        }
         Page page = linkedHashMap.get(pid);
         if(page ==null){
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
@@ -154,6 +158,13 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+
+        HeapFile heapFile = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
+        List<Page> affectPages = heapFile.insertTuple(tid, t);
+        for (Page affectPage : affectPages) {
+            affectPage.markDirty(true, tid);
+            linkedHashMap.put(affectPage.getId(), affectPage);
+        }
     }
 
     /**
@@ -173,6 +184,9 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        HeapPage page = (HeapPage) getPage(tid, t.getRecordId().getPageId(), Permissions.READ_ONLY);
+        page.markDirty(true, tid);
+        page.deleteTuple(t);
     }
 
     /**
