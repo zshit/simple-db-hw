@@ -6,3 +6,4 @@ log
 simple-db-hw.iml
 junit*.properties
 .idea/
+out/
