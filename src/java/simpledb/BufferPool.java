@@ -2,7 +2,9 @@ package simpledb;
 
 import java.io.*;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -26,6 +28,8 @@ public class BufferPool {
     private int numPages;
 
     private LinkedHashMap<PageId, Page> linkedHashMap;
+
+    private Page evictPage;
     
     /** Default number of pages passed to the constructor. This is used by
     other classes. BufferPool should use the numPages argument to the
@@ -39,7 +43,21 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         this.numPages = numPages;
-        linkedHashMap = new LinkedHashMap<PageId,Page>();
+        linkedHashMap = new LinkedHashMap<PageId,Page>(16, 0.75f, true){
+            @Override
+            protected boolean removeEldestEntry(Entry<PageId, Page> eldest) {
+                if(this.size() > numPages){
+                    try {
+                        evictPage = eldest.getValue();
+                        evictPage();
+                    } catch (DbException e) {
+                        e.printStackTrace();
+                    }
+                    return true;
+                }
+                return false;
+            }
+        };
     }
     
     public static int getPageSize() {
@@ -74,6 +92,9 @@ public class BufferPool {
     public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
+        if (pid ==null){
+            return null;
+        }
         Page page = linkedHashMap.get(pid);
         if(page ==null){
             DbFile dbFile = Database.getCatalog().getDatabaseFile(pid.getTableId());
@@ -154,6 +175,13 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+
+        HeapFile heapFile = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
+        List<Page> affectPages = heapFile.insertTuple(tid, t);
+        for (Page affectPage : affectPages) {
+            affectPage.markDirty(true, tid);
+            linkedHashMap.put(affectPage.getId(), affectPage);
+        }
     }
 
     /**
@@ -173,6 +201,9 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        HeapPage page = (HeapPage) getPage(tid, t.getRecordId().getPageId(), Permissions.READ_ONLY);
+        page.markDirty(true, tid);
+        page.deleteTuple(t);
     }
 
     /**
@@ -197,6 +228,7 @@ public class BufferPool {
     public synchronized void discardPage(PageId pid) {
         // some code goes here
         // not necessary for lab1
+        linkedHashMap.put(pid, null);
     }
 
     /**
@@ -206,6 +238,12 @@ public class BufferPool {
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
+        Page page = linkedHashMap.get(pid);
+        if (page !=null && page.isDirty() !=null) {
+            HeapFile heapFile = (HeapFile) Database.getCatalog().getDatabaseFile(pid.getTableId());
+            heapFile.writePage(page);
+        }
+        linkedHashMap.put(pid, null);
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -222,7 +260,10 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
-
+        if(evictPage !=null){
+            // do nothing
+            evictPage = null;
+        }
     }
 
 }

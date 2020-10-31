@@ -2,6 +2,8 @@ package simpledb;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 /**
@@ -83,6 +85,10 @@ public class HeapFile implements DbFile {
   public void writePage(Page page) throws IOException {
     // some code goes here
     // not necessary for lab1
+    RandomAccessFile randomAccessFile = new RandomAccessFile(file, "wr");
+    randomAccessFile.seek(page.getId().getPageNumber() * BufferPool.getPageSize());
+    randomAccessFile.write(page.getPageData());
+    randomAccessFile.close();
   }
 
   /**
@@ -97,16 +103,49 @@ public class HeapFile implements DbFile {
   public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
       throws DbException, IOException, TransactionAbortedException {
     // some code goes here
-    return null;
     // not necessary for lab1
+    if (t ==null){
+      return null;
+    }
+    int pageSize = numPages();
+    for (int i = 0; i < pageSize; i++) {
+      HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid, new HeapPageId(getId(), i), Permissions.READ_ONLY);
+      if(page ==null){
+        continue;
+      }
+      if(page.getNumEmptySlots() >0){
+        page.insertTuple(t);
+        return new ArrayList<>(Collections.singleton(page));
+      }
+    }
+
+    Files.write(file.toPath(),new byte[BufferPool.getPageSize()], StandardOpenOption.APPEND);
+    HeapPage heapPage = (HeapPage) Database.getBufferPool().getPage(tid, new HeapPageId(getId(), pageSize), Permissions.READ_ONLY);
+    heapPage.insertTuple(t);
+    return new ArrayList<>(Collections.singleton(heapPage));
   }
 
   // see DbFile.java for javadocs
   public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
       TransactionAbortedException {
     // some code goes here
-    return null;
     // not necessary for lab1
+    if (t ==null){
+      return null;
+    }
+
+    HeapPage heapPage = (HeapPage) Database.getBufferPool().getPage(tid, t.getRecordId().getPageId(), Permissions.READ_ONLY);
+    if(heapPage == null){
+      throw new DbException("");
+    }
+    heapPage.deleteTuple(t);
+    try {
+      writePage(heapPage);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return new ArrayList<>(Collections.singleton(
+        heapPage));
   }
 
   // see DbFile.java for javadocs

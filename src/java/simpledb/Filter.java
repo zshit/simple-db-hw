@@ -44,11 +44,13 @@ public class Filter extends Operator {
   public void close() {
     // some code goes here
     opIterator.close();
+    super.close();
   }
 
   public void rewind() throws DbException, TransactionAbortedException {
     // some code goes here
-    opIterator.rewind();
+    close();
+    open();
   }
 
   /**

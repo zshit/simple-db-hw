@@ -1,5 +1,7 @@
 package simpledb;
 
+import java.io.IOException;
+
 /**
  * Inserts tuples read from the child operator into the tableId specified in the
  * constructor
@@ -7,6 +9,13 @@ package simpledb;
 public class Insert extends Operator {
 
     private static final long serialVersionUID = 1L;
+
+    private TransactionId transactionId;
+    private OpIterator child;
+    private int tableId;
+    private TupleDesc resultTuple = new TupleDesc(new Type[]{Type.INT_TYPE});
+    private Tuple result = new Tuple(resultTuple);
+    Integer affectCount = 0;
 
     /**
      * Constructor.
@@ -24,23 +33,32 @@ public class Insert extends Operator {
     public Insert(TransactionId t, OpIterator child, int tableId)
             throws DbException {
         // some code goes here
+        this.transactionId = t;
+        this.child = child;
+        this.tableId = tableId;
     }
 
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return null;
+        return resultTuple;
     }
 
     public void open() throws DbException, TransactionAbortedException {
         // some code goes here
+        child.open();
+        super.open();
     }
 
     public void close() {
         // some code goes here
+        child.close();
+        super.close();
     }
 
     public void rewind() throws DbException, TransactionAbortedException {
         // some code goes here
+        close();
+        open();
     }
 
     /**
@@ -58,7 +76,22 @@ public class Insert extends Operator {
      */
     protected Tuple fetchNext() throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+
+        while(child.hasNext()){
+            Tuple tuple = child.next();
+            HeapFile heapFile = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
+            try {
+                heapFile.insertTuple(transactionId,tuple);
+                affectCount = affectCount + 1;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if(affectCount <=0){
+            return null;
+        }
+        result.setField(0, new IntField(affectCount));
+        return result;
     }
 
     @Override

@@ -25,11 +25,11 @@ public class DeleteTest extends FilterBase {
             Tuple t = deleteOperator.next();
             assertFalse(hasResult);
             hasResult = true;
+            System.out.println(hasResult);
             assertEquals(SystemTestUtil.SINGLE_INT_DESCRIPTOR, t.getTupleDesc());
             result = ((IntField) t.getField(0)).getValue();
         }
         assertTrue(hasResult);
-
         deleteOperator.close();
 
         // As part of the same transaction, scan the table
